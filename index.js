@@ -1,10 +1,10 @@
-let maze = [
-  ['#', '#', '#', '#', '#', '#', '#', '#', '#'],
-  ['#', '+', '+', '+', '#', '+', '+', '+', '#'],
-  ['#', '+', '#', '+', '#', '+', '#', '+', '#'],
-  ['+', '+', '#', '+', '0', '+', '#', '+', '#'],
-  ['#', '#', '#', '+', '#', '#', '#', '#', '#'],
-  ['#', '#', '+', '+', '#', '#', '#', '#', '#'],
+const maze = [
+  ['#', '#', '#', '#', '+', '+', '#', '#', '#'],
+  ['#', '+', '+', '#', '+', '+', '+', '+', '#'],
+  ['#', '+', '#', '#', '+', '+', '#', '+', '#'],
+  ['+', '+', '+', '+', '0', '+', '#', '+', '#'],
+  ['#', '+', '#', '+', '#', '#', '#', '#', '#'],
+  ['#', '+', '+', '+', '#', '#', '#', '#', '#'],
   ['#', '#', '+', '#', '#', '#', '#', '#', '#'],
   ['#', '#', '#', '#', '#', '#', '#', '#', '#'],
 ];
@@ -12,8 +12,7 @@ let maze = [
 const ERRORS = {
   invalidStartPoint: 'Missing starting point',
   invalidEndPoint: 'There is no exit from the maze',
-  invalidMap: 'Cannot start a movement because invalid maze',
-  errorFindPath: 'Impossible to find a way',
+  pathNotFound: 'Path not found',
 };
 
 const WALL = '#';
@@ -46,9 +45,9 @@ const findPath = (maze) => {
     return ERRORS.invalidEndPoint;
   }
 
-  //   g(n) — стоимость пути от начальной вершины до любой другой.
-  //   h(n) — эвристическое приближение стоимости пути от узла n до конечного узла.
-  //   f(n) — минимальная стоимость перехода в соседний узел.
+  let path_found = false;
+  let path = [];
+
   OPEN_NODES.push({ i: node.start.i, j: node.start.j, g: 0, h: 0, f: 0 });
 
   while (OPEN_NODES.length > 0) {
@@ -58,8 +57,8 @@ const findPath = (maze) => {
     const currentNode = OPEN_NODES.shift();
 
     if (currentNode.i === node.end.i && currentNode.j === node.end.j) {
-      console.log(currentNode);
-      console.log('finish');
+      path = build_path(currentNode, maze);
+      path_found = true;
       break;
     }
 
@@ -79,33 +78,35 @@ const findPath = (maze) => {
       }
     }
   }
+
+  if (!path_found) {
+    return ERRORS.pathNotFound;
+  }
+
+  return path;
 };
 
 const getOpenNeighborsNode = (node, maze) => {
   const neighbors = [];
   const { i, j } = node;
 
-  // top
   if (maze[i - 1] && maze[i - 1][j]) {
-    neighbors.push({ i: i - 1, j, h: getHeuristic(i - 1, j) });
+    neighbors.push({ i: i - 1, j, h: getHeuristic(i - 1, j), direction: DIRECTIONS.top });
   }
 
-  //bottom
   if (maze[i + 1] && maze[i + 1][j]) {
-    neighbors.push({ i: i + 1, j, h: getHeuristic(i + 1, j) });
+    neighbors.push({ i: i + 1, j, h: getHeuristic(i + 1, j), direction: DIRECTIONS.bottom });
   }
 
-  // left
   if (maze[i][j - 1]) {
-    neighbors.push({ i, j: j - 1, h: getHeuristic(i, j - 1) });
+    neighbors.push({ i, j: j - 1, h: getHeuristic(i, j - 1), direction: DIRECTIONS.left });
   }
 
-  // right
   if (maze[i][j + 1]) {
-    neighbors.push({ i, j: j + 1, h: getHeuristic(i, j + 1) });
+    neighbors.push({ i, j: j + 1, h: getHeuristic(i, j + 1), direction: DIRECTIONS.right });
   }
 
-  return neighbors.filter((neighbor) => maze[neighbor.i][neighbor.j + 1] !== WALL && !inVisitedNodes(neighbor));
+  return neighbors.filter((neighbor) => maze[neighbor.i][neighbor.j] !== WALL && !inVisitedNodes(neighbor));
 };
 
 const inOpenNodes = (node) => {
@@ -154,6 +155,15 @@ const setEndNode = (maze) => {
       [node.end.i, node.end.j] = [i, maze[i].length - 1];
     }
   }
+};
+
+const build_path = (to_node) => {
+  let path = [];
+  while (to_node !== undefined && to_node.direction !== undefined) {
+    path.push(to_node.direction);
+    to_node = to_node.previous;
+  }
+  return path;
 };
 
 console.log(findPath(maze));
